@@ -1,18 +1,18 @@
 #!/bin/bash
-# REDEN Masternode Setup Script V1.3 for Ubuntu 16.04 LTS
-# (c) 2018 by Allroad [FasterPool.com] for Reden 
+# ONEM Masternode Setup Script V1.3 for Ubuntu 16.04 LTS
+# (c) 2018 by Dwigt007 for ONEM
 #
 # Script will attempt to autodetect primary public IP address
 # and generate masternode private key unless specified in command line
 #
 # Usage:
-# bash reden-setup.sh [Masternode_Private_Key]
+# bash onem-setup.sh [Masternode_Private_Key]
 #
 # Example 1: Existing genkey created earlier is supplied
-# bash reden-setup.sh 27dSmwq9CabKjo2L3UD1HvgBP3ygbn8HdNmFiGFoVbN1STcsypy
+# bash onem-setup.sh 27dSmwq9CabKjo2L3UD1HvgBP3ygbn8HdNmFiGFoVbN1STcsypy
 #
 # Example 2: Script will generate a new genkey automatically
-# bash reden-setup.sh
+# bash onem-setup.sh
 #
 
 #Color codes
@@ -22,7 +22,8 @@ YELLOW='\033[1;33m'
 NC='\033[0m' # No Color
 
 #Reden TCP port
-PORT=13058
+PORT=9321
+RPC=
 
 #Clear keyboard input buffer
 function clear_stdin { while read -r -t 0; do read -r; done; }
@@ -32,17 +33,17 @@ function delay { echo -e "${GREEN}Sleep for $1 seconds...${NC}"; sleep "$1"; }
 
 #Stop daemon if it's already running
 function stop_daemon {
-    if pgrep -x 'redend' > /dev/null; then
-        echo -e "${YELLOW}Attempting to stop redend${NC}"
-        reden-cli stop
+    if pgrep -x 'ONEMd' > /dev/null; then
+        echo -e "${YELLOW}Attempting to stop ONEMd${NC}"
+        ONEM-cli stop
         delay 30
-        if pgrep -x 'redend' > /dev/null; then
-            echo -e "${RED}redend daemon is still running!${NC} \a"
+        if pgrep -x 'ONEMd' > /dev/null; then
+            echo -e "${RED}ONEMd daemon is still running!${NC} \a"
             echo -e "${YELLOW}Attempting to kill...${NC}"
-            pkill redend
+            pkill ONEMd
             delay 30
-            if pgrep -x 'redend' > /dev/null; then
-                echo -e "${RED}Can't stop redend! Reboot and try again...${NC} \a"
+            if pgrep -x 'ONEMd' > /dev/null; then
+                echo -e "${RED}Can't stop ONEMd! Reboot and try again...${NC} \a"
                 exit 2
             fi
         fi
@@ -53,7 +54,7 @@ function stop_daemon {
 genkey=$1
 
 clear
-echo -e "${YELLOW}REDEN Masternode Setup Script V1.2 for Ubuntu 16.04 LTS${NC}"
+echo -e "${YELLOW}ONEM Masternode Setup Script V1.3 for Ubuntu 16.04 LTS${NC}"
 echo -e "${GREEN}Updating system and installing required packages...${NC}"
 sudo DEBIAN_FRONTEND=noninteractive apt-get update -y
 
@@ -64,11 +65,11 @@ publicip=$(dig +short myip.opendns.com @resolver1.opendns.com)
 if [ -n "$publicip" ]; then
     echo -e "${YELLOW}IP Address detected:" $publicip ${NC}
 else
-    echo -e "${RED}ERROR:${YELLOW} Public IP Address was not detected!${NC} \a"
+    echo -e "${RED}ERROR: Public IP Address was not detected!${NC} \a"
     clear_stdin
     read -e -p "Enter VPS Public IP Address: " publicip
     if [ -z "$publicip" ]; then
-        echo -e "${RED}ERROR:${YELLOW} Public IP Address must be provided. Try again...${NC} \a"
+        echo -e "${RED}ERROR: Public IP Address must be provided. Try again...${NC} \a"
         exit 1
     fi
 fi
@@ -99,11 +100,15 @@ sudo ufw default deny incoming
 sudo ufw default allow outgoing
 sudo ufw allow ssh
 sudo ufw allow $PORT/tcp
+sudo ufw allow $RPC/tcp
+sudo ufw allow 22/tcp
+sudo ufw limit 22/tcp
 echo -e "${YELLOW}"
 sudo ufw --force enable
 echo -e "${NC}"
 
-#Generating Random Password for redend JSON RPC
+#Generating Random Password for ONEMd JSON RPC
+rpcuser=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 rpcpassword=$(cat /dev/urandom | tr -dc 'a-zA-Z0-9' | fold -w 32 | head -n 1)
 
 #Create 2GB swap file
@@ -127,48 +132,48 @@ fi
 
 #Installing Daemon
 cd ~
-#sudo rm reden_ubuntu16_1.0.0_linux.gz
-#wget https://github.com/NicholasAdmin/Reden/releases/download/Wallet/reden_ubuntu16_1.0.0_linux.gz
-#sudo tar -xzvf reden_ubuntu16_1.0.0_linux.gz --strip-components 1 --directory /usr/bin
-#sudo rm reden_ubuntu16_1.0.0_linux.gz
+#sudo rm ONEM.linux_x64.v0.12.5.0.zip
+#wget https://github.com/AirShark/onemancoin/releases/download/v.0.12.5.0/ONEM.linux_x64.v0.12.5.0.zip
+#unzip ONEM.linux_x64.v0.12.5.0.zip
+#sudo rm /ONEM.linux_x64.v0.12.5.0.zip
 
 stop_daemon
 
 # Deploy binaries to /usr/bin
-sudo cp RedenMasternodeSetup/Reden-v1.0-Ubuntu16.04/reden* /usr/bin/
-sudo chmod 755 -R ~/RedenMasternodeSetup
-sudo chmod 755 /usr/bin/reden*
+sudo cp ONEMmasternodesetup//ONEM.linux_x64.v0.12.5.0/ONEM* /usr/bin/
+sudo chmod 755 -R ~/ONEMmasternodesetup
+sudo chmod 755 /usr/bin/ONEM*
 
 # Deploy masternode monitoring script
-cp ~/RedenMasternodeSetup/nodemon.sh /usr/local/bin
+cp ~/ONEMmasternodesetup/nodemon.sh /usr/local/bin
 sudo chmod 711 /usr/local/bin/nodemon.sh
 
-#Create reden datadir
-if [ ! -f ~/.redencore/reden.conf ]; then 
-	sudo mkdir ~/.redencore
+#Create datadir
+if [ ! -f ~/.ONEMcore/ONEM.conf ]; then 
+	sudo mkdir ~/.ONEMcore
 fi
 
 echo -e "${YELLOW}Creating reden.conf...${NC}"
 
 # If genkey was not supplied in command line, we will generate private key on the fly
 if [ -z $genkey ]; then
-    cat <<EOF > ~/.redencore/reden.conf
-rpcuser=redenrpc
+    cat <<EOF > ~/.ONEMcore/ONEM.conf
+rpcuser=$rpcuser
 rpcpassword=$rpcpassword
 EOF
 
-    sudo chmod 755 -R ~/.redencore/reden.conf
+    sudo chmod 755 -R ~/.ONEMcore/ONEM.conf
 
     #Starting daemon first time just to generate masternode private key
-    redend -daemon
+    ONEMd -daemon
     delay 30
 
     #Generate masternode private key
     echo -e "${YELLOW}Generating masternode private key...${NC}"
-    genkey=$(reden-cli masternode genkey)
+    genkey=$(ONEM-cli masternode genkey)
     if [ -z "$genkey" ]; then
-        echo -e "${RED}ERROR:${YELLOW}Can not generate masternode private key.$ \a"
-        echo -e "${RED}ERROR:${YELLOW}Reboot VPS and try again or supply existing genkey as a parameter."
+        echo -e "${RED}ERROR: Can not generate masternode private key.${NC} \a"
+        echo -e "${RED}ERROR:${YELLOW}Reboot VPS and try again or supply existing genkey as a parameter.${NC}"
         exit 1
     fi
     
@@ -178,8 +183,8 @@ EOF
 fi
 
 # Create reden.conf
-cat <<EOF > ~/.redencore/reden.conf
-rpcuser=redenrpc
+cat <<EOF > ~/.ONEMcore/ONEM.conf
+rpcuser=$rpcuser
 rpcpassword=$rpcpassword
 rpcallowip=127.0.0.1
 onlynet=ipv4
@@ -193,11 +198,11 @@ masternodeprivkey=$genkey
 EOF
 
 #Finally, starting reden daemon with new reden.conf
-redend
+ONEMd
 delay 5
 
 #Setting auto star cron job for redend
-cronjob="@reboot sleep 30 && redend"
+cronjob="@reboot sleep 30 && ONEMd"
 crontab -l > tempcron
 if ! grep -q "$cronjob" tempcron; then
     echo -e "${GREEN}Configuring crontab job...${NC}"
@@ -215,7 +220,7 @@ Masternode was installed with VPS IP Address: ${YELLOW}$publicip${NC}
 Masternode Private Key: ${YELLOW}$genkey${NC}
 
 Now you can add the following string to the masternode.conf file
-for your Hot Wallet (the wallet with your Reden collateral funds):
+for your Hot Wallet (the wallet with your ONEM collateral funds):
 ======================================================================== \a"
 echo -e "${YELLOW}mn1 $publicip:$PORT $genkey TxId TxIdx${NC}"
 echo -e "========================================================================
@@ -228,7 +233,7 @@ into your ${YELLOW}masternode.conf${NC} file and replace:
     ${YELLOW}TxIdx${NC} - with Transaction Index (0 or 1)
      Remember to save the masternode.conf and restart the wallet!
 
-To introduce your new masternode to the Reden network, you need to
+To introduce your new masternode to the ONEM network, you need to
 issue a masternode start command from your wallet, which proves that
 the collateral for this node is secured."
 
@@ -258,7 +263,7 @@ Masternode Status to change to: 'Masternode successfully started'.
 This will indicate that your masternode is fully functional and
 you can celebrate this achievement!
 
-Currently your masternode is syncing with the Reden network...
+Currently your masternode is syncing with the ONEM network...
 
 The following screen will display in real-time
 the list of peer connections, the status of your masternode,
@@ -276,24 +281,24 @@ Here are some useful commands and tools for masternode troubleshooting:
 ========================================================================
 To view masternode configuration produced by this script in reden.conf:
 
-${YELLOW}cat ~/.redencore/reden.conf${NC}
+${YELLOW}cat ~/.ONEMcore/ONEM.conf${NC}
 
-Here is your reden.conf generated by this script:
+Here is your ONEM.conf generated by this script:
 -------------------------------------------------${YELLOW}"
-cat ~/.redencore/reden.conf
+cat ~/.ONEMcore/ONEM.conf
 echo -e "${NC}-------------------------------------------------
 
-NOTE: To edit reden.conf, first stop the redend daemon,
+NOTE: To edit ONEM.conf, first stop the redend daemon,
 then edit the reden.conf file and save it in nano: (Ctrl-X + Y + Enter),
 then start the redend daemon back up:
 
-to stop:   ${YELLOW}eden-cli stop${NC}
-to edit:   ${YELLOW}nano ~/.redencore/reden.conf${NC}
-to start:  ${YELLOW}edend${NC}
+to stop:   ${YELLOW}ONEM-cli stop${NC}
+to edit:   ${YELLOW}nano ~/.ONEMcore/ONEM.conf${NC}
+to start:  ${YELLOW}ONEMd${NC}
 ========================================================================
-To view Redend debug log showing all MN network activity in realtime:
+To view ONEMd debug log showing all MN network activity in realtime:
 
-${YELLOW}tail -f ~/.redencore/debug.log${NC}
+${YELLOW}tail -f ~/.ONEMcore/debug.log${NC}
 ========================================================================
 To monitor system resource utilization and running processes:
 
@@ -308,10 +313,10 @@ or just type 'node' and hit <TAB> to autocomplete script name.
 ========================================================================
 
 
-Enjoy your Reden Masternode and thanks for using this setup script!
+Enjoy your ONEM Masternode and thanks for using this setup script!
 
-If you found it helpful, please donate REDEN to:
-RCdYg5yq3YfymwrZi8EMBSFHxcwR7acniS
+If you found it helpful, please donate ONEM to:
+oQkqPRFy6ZTyxeSti4HqNE5g6WGe49Ttj6
 
 ...and make sure to check back for updates!
 
