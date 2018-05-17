@@ -152,7 +152,7 @@ if [ ! -f ~/.ONEMcore/ONEM.conf ]; then
 	sudo mkdir ~/.ONEMcore
 fi
 
-echo -e "${YELLOW}Creating reden.conf...${NC}"
+echo -e "${YELLOW}Creating ONEM.conf...${NC}"
 
 # If genkey was not supplied in command line, we will generate private key on the fly
 if [ -z $genkey ]; then
@@ -176,12 +176,12 @@ EOF
         exit 1
     fi
     
-    #Stopping daemon to create reden.conf
+    #Stopping daemon to create ONEM.conf
     stop_daemon
     delay 30
 fi
 
-# Create reden.conf
+# Create ONEM.conf
 cat <<EOF > ~/.ONEMcore/ONEM.conf
 rpcuser=$rpcuser
 rpcpassword=$rpcpassword
@@ -196,11 +196,11 @@ masternode=1
 masternodeprivkey=$genkey
 EOF
 
-#Finally, starting reden daemon with new reden.conf
+#Finally, starting ONEM daemon with new ONEM.conf
 ONEMd
 delay 5
 
-#Setting auto star cron job for redend
+#Setting auto star cron job for ONEMd
 cronjob="@reboot sleep 30 && ONEMd"
 crontab -l > tempcron
 if ! grep -q "$cronjob" tempcron; then
